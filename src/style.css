@@ -1,0 +1,21 @@
+body {
+    background: #000000;
+}
+
+#gameDiv {
+    width: 98vw;
+    text-align: center;
+    color: white;
+}
+
+#playerList {
+    font-size: 3em;
+    width: 1em;
+    margin: 0 auto;
+    padding: 0;
+    list-style-type: none;
+}
+
+#game {
+    width: 50vw;
+}

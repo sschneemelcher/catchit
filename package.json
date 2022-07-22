@@ -1,0 +1,36 @@
+{
+  "name": "fungame",
+  "version": "0.1.0",
+  "description": "fun game app for practicing web technologies",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sschneemelcher/fungame.git"
+  },
+  "keywords": [
+    "fun",
+    "game",
+    "web",
+    "app"
+  ],
+  "author": "Simon Schneemelcher",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sschneemelcher/fungame/issues"
+  },
+  "homepage": "https://github.com/sschneemelcher/fungame#readme",
+  "devDependencies": {
+    "css-loader": "^6.7.1",
+    "style-loader": "^3.3.1",
+    "ts-loader": "^9.3.1",
+    "typescript": "^4.7.4",
+    "webpack": "^5.73.0",
+    "webpack-cli": "^4.10.0"
+  },
+  "dependencies": {
+    "peerjs": "^1.4.6"
+  }
+}
