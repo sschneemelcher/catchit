@@ -98,6 +98,9 @@ peer.on('open', function(id) {
     drawBoardTable();
     document.getElementById('peerID').innerText += ' ' + id;
     setInterval(_ => move(), 25);
+    setInterval(_ => {
+        table[myID][1].points = Math.min(table[myID][1].points + 1, 100);
+    }, 100);
     peer.on('connection', function(conn) {
         table[conn.peer] = [undefined, undefined];
         table[conn.peer][0] = conn;

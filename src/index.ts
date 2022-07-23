@@ -102,7 +102,11 @@ export function move() {
                 makeMove((stepSize / 2) * speed, 0);
                 break;
             case 'e':
-                speed = (speed % 2) + 1;
+                if (me.points == 100) {
+                    me.points = 0;
+                    speed = 2;
+                    setTimeout(_ => speed = 1, 5000);
+                }
             default:
                 break;
         }
