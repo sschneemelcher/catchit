@@ -26,8 +26,8 @@ export function checkBoard(table: Table) {
         if (me.catcher) {
             for (let id in table) {
                 if (id != myID) {
-                    if (table[id][1].x > me.x && table[id][1].x < (me.x + stepSize) 
-                        && table[id][1].y > me.y && table[id][1].y < me.y + stepSize) {
+                    if (table[id][1].x + stepSize > me.x && table[id][1].x < (me.x + stepSize) 
+                        && table[id][1].y + stepSize > me.y && table[id][1].y < (me.y + stepSize)) {
                         table[myID][1].catcher = false;
                         table[id][1].catcher = true;
                         sendCatch(id);
