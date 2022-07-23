@@ -1,3 +1,4 @@
+import * as _ from 'lodash';
 import {drawBoard} from './draw';
 import {connect, broadcastMove, getReady} from './peer';
 import {checkBoard, checkReady} from './game';
@@ -38,12 +39,11 @@ export function rand(max: number) {
 }
 
 function setup() {
-    let myColor = `#${rand(180).toString(16)}${rand(180).toString(16)}${rand(180).toString(16)}`
     let myX = rand(boardWidth / 4);
     myX = myX - (myX % stepSize);
     let myY = rand(boardWidth / 4);
     myY = myY - (myY % stepSize);
-    players[0] = ({name: localStorage['username'], x: myX, y: myY, color: myColor, 
+    players[0] = ({name: localStorage['username'], x: myX, y: myY, color: createColor(), 
                     points: 0, catcher: false, ready: 0});
     drawBoard(players);
 }
@@ -51,13 +51,25 @@ function setup() {
 export let players = new Array<Player>;
 setup();
 
+function createColor() {
+    let color = '#';
+    let budget = 400;
+    for (let i = 0; i < 3; i++) {
+        let c = Math.max(rand(Math.min(budget, 255)), 16);
+        color += c.toString(16);
+        budget -= c;
+    }
+    console.log(color);
+    return color;
+}
+
 function changeColor() {
-    let myColor = `#${rand(180).toString(16)}${rand(180).toString(16)}${rand(180).toString(16)}`
-    players[0].color = myColor;
+    players[0].color = createColor();
     drawBoard(players);
 }
 document.getElementById('colorBtn').addEventListener('click', changeColor);
 document.getElementById('readyBtn').addEventListener('click', getReady);
+
 
 function makeMove(x: number, y: number) {
     if (players[0].x + x >= 0 && players[0].x + x < boardWidth) {

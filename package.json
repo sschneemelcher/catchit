@@ -23,6 +23,7 @@
   },
   "homepage": "https://github.com/sschneemelcher/fungame#readme",
   "devDependencies": {
+    "@types/lodash": "^4.14.182",
     "css-loader": "^6.7.1",
     "style-loader": "^3.3.1",
     "ts-loader": "^9.3.1",
@@ -31,6 +32,7 @@
     "webpack-cli": "^4.10.0"
   },
   "dependencies": {
+    "lodash": "^4.17.21",
     "peerjs": "^1.4.6"
   }
 }
