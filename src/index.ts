@@ -1,5 +1,5 @@
-import {connect, disconnect, broadcastMove, getReady, me,
-    stepSize, drawBoardTable, checkBoardTable} from './peer';
+import {connect, disconnect, broadcastMove, getReady, me, incStepSize,
+    decStepSize, stepSize, drawBoardTable, checkBoardTable, sendColor, sendPower} from './peer';
 import './style.css';
 
 function clickConnect() {
@@ -11,6 +11,7 @@ function clickConnect() {
         setTimeout(_ => connectBtn.disabled = false, 1000);
 }
 
+export let power = false;
 document.getElementById('connectBtn').addEventListener('click', clickConnect);
 document.getElementById('disconnectBtn').addEventListener('click', disconnect);
 
@@ -54,6 +55,7 @@ export function createColor() {
 
 function changeColor() {
     me.color = createColor();
+    sendColor();
     drawBoardTable();
 }
 document.getElementById('colorBtn').addEventListener('click', changeColor);
@@ -79,7 +81,7 @@ function keyUP(e:KeyboardEvent) {
 }
 
 function logkey(e: KeyboardEvent) {
-    keyList.add(e.key);
+    keyList.add(e.key as string);
 }
 
 export function move() {
@@ -103,9 +105,22 @@ export function move() {
                 break;
             case 'e':
                 if (me.points == 100) {
-                    me.points = 0;
-                    speed = 2;
-                    setTimeout(_ => speed = 1, 5000);
+                    var int = setInterval(_ => {
+                        me.points -= 1; 
+                        if (me.points <= 0) {
+                            clearInterval(int);
+                            power = false;
+                            speed = 1;
+                            decStepSize();
+                        }
+                    }, 50);;
+                    if (me.catcher) {
+                        incStepSize();
+                    } else {
+                        speed = 2;
+                    }
+                    power = true;
+                    sendPower();
                 }
             default:
                 break;

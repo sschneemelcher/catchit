@@ -1,5 +1,5 @@
 import {Player} from './index';
-import {sendCatch, Table, myID} from './peer';
+import {sendCatch, Table, myID, stepSize} from './peer';
 
 
 let checkedX = -1;
@@ -26,7 +26,8 @@ export function checkBoard(table: Table) {
         if (me.catcher) {
             for (let id in table) {
                 if (id != myID) {
-                    if (table[id][1].x == me.x && table[id][1].y == me.y) {
+                    if (table[id][1].x > me.x && table[id][1].x < (me.x + stepSize) 
+                        && table[id][1].y > me.y && table[id][1].y < me.y + stepSize) {
                         table[myID][1].catcher = false;
                         table[id][1].catcher = true;
                         sendCatch(id);

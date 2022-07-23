@@ -1,5 +1,5 @@
 import {DataConnection, Peer} from 'peerjs';
-import {Player, rand, createColor, move} from './index';
+import {Player, rand, createColor, move, power} from './index';
 import {drawBoard} from './draw';
 import {checkBoard, checkReady} from './game';
 
@@ -38,6 +38,33 @@ export function sendCatch(catchID: string) {
     for (let id in table) {
         if (id != myID) {
             table[id][0].send(`{"t": "gotcha", "p": "${catchID}"}`);
+        }
+    }
+}
+
+export function sendPower() {
+    for (let id in table) {
+        if (id != myID) {
+            table[id][0].send(`{"t": "power", "p": ""}`);
+        }
+    }
+}
+
+
+export function incStepSize() {
+    if (stepSize == 6)
+        stepSize *= 3;
+}
+
+export function decStepSize() {
+    if (stepSize > 6)
+        stepSize /= 3;
+}
+
+export function sendColor() {
+    for (let id in table) {
+        if (id != myID) {
+            table[id][0].send(`{"t": "color", "p": "${me.color}"}`);
         }
     }
 }
@@ -99,8 +126,10 @@ peer.on('open', function(id) {
     document.getElementById('peerID').innerText += ' ' + id;
     setInterval(_ => move(), 25);
     setInterval(_ => {
-        table[myID][1].points = Math.min(table[myID][1].points + 1, 100);
-    }, 100);
+        if (!power){
+            table[myID][1].points = Math.min(table[myID][1].points + 1, 100);
+        }
+    }, 150);
     peer.on('connection', function(conn) {
         table[conn.peer] = [undefined, undefined];
         table[conn.peer][0] = conn;
@@ -139,6 +168,12 @@ function handleMessage(peerID:string, msg_str: string) {
             table[peerID][1].catcher = false;
             table[msg.p as string][1].catcher = true;
             createPlayers();
+        case 'power':
+            table[peerID][1].points = 100;
+            setTimeout(_ => table[peerID][1].points = 0);
+            break;
+        case 'color':
+            table[peerID][1].color = msg.p as string;
         default:
             console.log('unknown message type');
             break;

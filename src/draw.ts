@@ -7,7 +7,8 @@ function refreshList(players: Array<Player>) {
     list.innerHTML = '';
     players.forEach(player => {
         let newItem = document.createElement('li');
-        newItem.innerText = `${player.points}:${player.name}`;
+        newItem.innerText = player.name;
+        document.getElementById('powerUp').innerText = `POWERUP: ${player.points}%`
         if (player.ready > 0) {
             newItem.innerText += '(Ready)';
         }
