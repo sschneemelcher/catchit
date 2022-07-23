@@ -1,10 +1,18 @@
 import {DataConnection, Peer} from 'peerjs';
-import {Player, players, rand} from './index';
+import {Player, rand, createColor} from './index';
 import {drawBoard} from './draw';
 import {checkBoard, checkReady} from './game';
 
+const canvas: HTMLCanvasElement = <HTMLCanvasElement> document.getElementById('game');
 let peer = new Peer();
-let conns = new Array<DataConnection>;
+
+type Table = {
+    [id: string]: [conn: DataConnection, player: Player],
+}
+
+let table: Table = {};
+
+//let conns = new Array<DataConnection>;
 
 type message = {
     type: string;
@@ -12,104 +20,144 @@ type message = {
 }
 
 export function sendCatch(player: Player) {
-    conns.forEach(conn => {
-        conn.send(`{"type": "gotcha", "payload": ${JSON.stringify(player)}}`);
-    });
+    for (let id in table) {
+        if (id != myID) {
+            table[id][0].send(`{"type": "gotcha", "payload": ${JSON.stringify(player)}}`);
+        }
+    }
 }
 
 export function broadcastMove() {
-    conns.forEach(conn => {
-        conn.send(`{"type": "position", "payload": ${JSON.stringify(players[0])}}`);
-    });
+    for (let id in table) {
+        if (id != myID) {
+            table[id][0].send(`{"type": "position", "payload": ${JSON.stringify(table[myID][1])}}`);
+        }
+    }
+    drawBoardTable();
 }
 
 export function getReady() {
-    players[0].ready = rand(200) + 1;
-    conns.forEach(conn => {
-        conn.send(`{"type": "ready", "payload": ${JSON.stringify(players[0])}}`);
-    });
-    checkReady();
+    table[myID][1].ready = rand(200) + 1;
+    for (let id in table) {
+        if (id != myID) {
+            table[id][0].send(`{"type": "ready", "payload": ${JSON.stringify(table[myID][1])}}`);
+        }
+    }
+    drawBoardTable();
+}
+
+export function drawBoardTable() {
+    let players: Array<Player> = [];
+    for (let id in table) {
+        players.push(table[id][1]);
+    }
+    checkReady(players);
     drawBoard(players);
 }
+
+export function checkBoardTable() {
+    let players: Array<Player> = [];
+    for (let id in table) {
+        players.push(table[id][1]);
+    }
+    checkBoard(players);
+}
+
+let boardWidth = canvas.width;
+let boardHeight = canvas.height;
+let stepSize = 5;
+
+let myX = rand(boardWidth);
+myX = myX - (myX % stepSize);
+let myY = rand(boardHeight);
+myY = myY - (myY % stepSize);
+
+export let me = ({name: localStorage['username'], x: myX, y: myY, color: createColor(), 
+                    points: 0, catcher: false, ready: 0});
+
+console.log(me);
 
 let myID = '';
 peer.on('open', function(id) {
 	console.log('My peer ID is: ' + id);
     myID = id;
+    table[myID] = [undefined, undefined];
+    table[myID][1] = me;
+    drawBoardTable();
     document.getElementById('peerID').innerText += ' ' + id;
     peer.on('connection', function(conn) {
-        conns.push(conn);
+        table[conn.peer] = [undefined, undefined];
+        table[conn.peer][0] = conn;
         setupConnection(conn);
     });
 });
 
-function handleMessage(msg_str: string) {
+
+function handleMessage(peerID:string, msg_str: string) {
     console.log(msg_str);
     let msg: message = JSON.parse(msg_str);
     switch (msg.type) {
         case 'name':
             let newPlayer: Player = msg.payload as Player;
-            players.push(newPlayer);
+            table[peerID][1] = newPlayer;
             break;
         case 'position':
         case 'ready':
             let updatedPlayer: Player = msg.payload as Player;
-            for (let i = 0; i < players.length; i++) {
-                if (players[i].name == updatedPlayer.name) {
-                    players[i] = updatedPlayer;
+            for (let id in table) {
+                if (id != myID) {
+                    if (table[id][1].name == updatedPlayer.name) {
+                        table[id][1] = updatedPlayer;
+                    }
                 }
             }
             break;
         case 'connections':
-            let myConns = new Set<string>;
-            myConns.add(myID);
-            conns.forEach(conn => myConns.add(conn.peer));
             let otherConns: Array<string> = msg.payload as Array<string>;
             otherConns.forEach(conn => {
-                if (!myConns.has(conn))
+                if (table[conn] == undefined)
                     connect(conn);
             });
             break;
         case 'gotcha':
             let caughtPlayer: Player = msg.payload as Player;
-            for (let i = 0; i < players.length; i++) {
-                if (players[i].name == caughtPlayer.name) {
-                    players[i].catcher = true;
-                } else {
-                    players[i].catcher = false;
+            for (let id in table) {
+                if (id != myID) {
+                    if (table[id][1].name == caughtPlayer.name) {
+                        table[id][1].catcher = true;
+                    } else {
+                        table[id][1].catcher = false;
+                    }
                 }
             }
-
-
         default:
             console.log('unknown message type');
             break;
     }
-    if (players[0].catcher)
-        checkBoard();
-    checkReady();
-    drawBoard(players);
-
+    if (table[myID][1].catcher)
+        checkBoardTable();
+    drawBoardTable();
 }
 
 function setupConnection(conn: DataConnection) {
         conn.on('data', function(data: string){
-            //console.log(data);
-            handleMessage(data);
-            console.log(conns[conns.length - 1].peer);
+            handleMessage(conn.peer, data);
         });
         setTimeout(function() {
-            conn.send(`{"type": "name", "payload": ${JSON.stringify(players[0])}}`);
+            conn.send(`{"type": "name", "payload": ${JSON.stringify(table[myID][1])}}`);
             let ids = new Array<string>;
-            conns.forEach(conn => ids.push(conn.peer));
+            for (let id in table) {
+                ids.push(id);
+            }
             conn.send(`{"type": "connections", "payload": ${JSON.stringify(ids)}}`);
         }, 500);
 }
 export function connect(peerID: string) {
+    table[peerID] = [undefined, undefined];
     if (peerID != '') {
-        conns.push(peer.connect(peerID));
-        conns[conns.length - 1].on('open', function() {
-            setupConnection(conns[conns.length - 1]);
+        table[peerID][0] = peer.connect(peerID);
+        table[peerID][0].on('open', function() {
+            setupConnection(table[peerID][0]);
         });
     }
 }

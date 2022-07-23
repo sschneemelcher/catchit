@@ -1,4 +1,4 @@
-import {players} from './index';
+import {Player} from './index';
 import {sendCatch} from './peer';
 
 
@@ -18,7 +18,7 @@ function hashcode(str: string) {
 }
 
 
-export function checkBoard() {
+export function checkBoard(players: Array<Player>) {
     let me = players[0];
     if (me.x != checkedX || me.y != checkedY) {
         checkedX = me.x;
@@ -35,7 +35,7 @@ export function checkBoard() {
     }
 }
 
-export function checkReady() {
+export function checkReady(players: Array<Player>) {
     let ready = true;
     let sum = 0;
     players.forEach(player => {
