@@ -1,4 +1,5 @@
-import {ctx, Player, boardWidth, boardHeight, stepSize} from './index';
+import {ctx, Player, boardWidth, boardHeight} from './index';
+import {stepSize} from './peer';
 
 
 function refreshList(players: Array<Player>) {
@@ -6,13 +7,13 @@ function refreshList(players: Array<Player>) {
     list.innerHTML = '';
     players.forEach(player => {
         let newItem = document.createElement('li');
-        newItem.innerText = player.name;
+        newItem.innerText = `${player.points}:${player.name}`;
         if (player.ready > 0) {
             newItem.innerText += '(Ready)';
         }
         if (player.catcher) {
             newItem.innerText += '(Catcher)';
-            newItem.style.color = '#FF0000';
+            newItem.style.color = '#FF9090';
         } else {
             newItem.style.color = player.color;
         }
@@ -30,7 +31,7 @@ export function drawBoard(players: Array<Player>) {
     ctx.fillRect(0, 0, boardWidth, boardHeight);
     for (let i = players.length - 1; i >= 0; i--){
         if (players[i].catcher)
-            drawPlayer(players[i].x, players[i].y, '#FF0000');
+            drawPlayer(players[i].x, players[i].y, '#FF9090');
         else 
             drawPlayer(players[i].x, players[i].y, players[i].color);
     }

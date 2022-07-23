@@ -1,5 +1,5 @@
 import {DataConnection, Peer} from 'peerjs';
-import {Player, rand, createColor} from './index';
+import {Player, rand, createColor, move} from './index';
 import {drawBoard} from './draw';
 import {checkBoard, checkReady} from './game';
 
@@ -20,17 +20,24 @@ function createPlayers() {
             players.push(table[id][1]);
         }
     }
+    if (players.length > 1) {
+        (document.getElementById('readyBtn') as HTMLButtonElement).disabled = false;
+        (document.getElementById('disconnectBtn') as HTMLButtonElement).disabled = false;
+    } else {
+        (document.getElementById('readyBtn') as HTMLButtonElement).disabled = true;
+        (document.getElementById('disconnectBtn') as HTMLButtonElement).disabled = true;
+    }
 }
 
 type message = {
-    type: string;
-    payload: unknown;
+    t: string;
+    p: unknown;
 }
 
 export function sendCatch(catchID: string) {
     for (let id in table) {
         if (id != myID) {
-            table[id][0].send(`{"type": "gotcha", "payload": "${catchID}"}`);
+            table[id][0].send(`{"t": "gotcha", "p": "${catchID}"}`);
         }
     }
 }
@@ -38,7 +45,7 @@ export function sendCatch(catchID: string) {
 export function broadcastMove() {
     for (let id in table) {
         if (id != myID) {
-            table[id][0].send(`{"type": "position", "payload": ${JSON.stringify([table[myID][1].x, table[myID][1].y])}}`);
+            table[id][0].send(`{"t": "pos", "p": ${JSON.stringify([table[myID][1].x, table[myID][1].y])}}`);
         }
     }
     drawBoardTable();
@@ -48,7 +55,7 @@ export function getReady() {
     table[myID][1].ready = rand(200) + 1;
     for (let id in table) {
         if (id != myID) {
-            table[id][0].send(`{"type": "ready", "payload": ${table[myID][1].ready}}`);
+            table[id][0].send(`{"t": "ready", "p": ${table[myID][1].ready}}`);
         }
     }
     checkReady(players);
@@ -69,7 +76,7 @@ export function checkBoardTable() {
 
 let boardWidth = canvas.width;
 let boardHeight = canvas.height;
-let stepSize = 5;
+export let stepSize = 6;
 
 let myX = rand(boardWidth);
 myX = myX - (myX % stepSize);
@@ -90,6 +97,7 @@ peer.on('open', function(id) {
     createPlayers();
     drawBoardTable();
     document.getElementById('peerID').innerText += ' ' + id;
+    setInterval(_ => move(), 25);
     peer.on('connection', function(conn) {
         table[conn.peer] = [undefined, undefined];
         table[conn.peer][0] = conn;
@@ -100,25 +108,25 @@ peer.on('open', function(id) {
 
 function handleMessage(peerID:string, msg_str: string) {
     let msg: message = JSON.parse(msg_str);
-    switch (msg.type) {
+    switch (msg.t) {
         case 'name':
-            let newPlayer: Player = msg.payload as Player;
+            let newPlayer: Player = msg.p as Player;
             table[peerID][1] = newPlayer;
             createPlayers();
             break;
-        case 'position':
-            let arr = msg.payload as Array<number>;
+        case 'pos':
+            let arr = msg.p as Array<number>;
             table[peerID][1].x = arr[0];
             table[peerID][1].y = arr[1];
             createPlayers();
             break;
         case 'ready':
-            table[peerID][1].ready = msg.payload as number;
+            table[peerID][1].ready = msg.p as number;
             createPlayers();
             checkReady(players);
             break;
-        case 'connections':
-            let otherConns: Array<string> = msg.payload as Array<string>;
+        case 'conns':
+            let otherConns: Array<string> = msg.p as Array<string>;
             otherConns.forEach(conn => {
                 if (table[conn] == undefined)
                     connect(conn);
@@ -126,7 +134,7 @@ function handleMessage(peerID:string, msg_str: string) {
             break;
         case 'gotcha':
             table[peerID][1].catcher = false;
-            table[msg.payload as string][1].catcher = true;
+            table[msg.p as string][1].catcher = true;
             createPlayers();
         default:
             console.log('unknown message type');
@@ -146,14 +154,19 @@ function setupConnection(conn: DataConnection) {
             createPlayers();
             drawBoardTable();
         });
-        setTimeout(function() {
-            conn.send(`{"type": "name", "payload": ${JSON.stringify(table[myID][1])}}`);
+        let count = 0
+        let int = setInterval(function() {
+            conn.send(`{"t": "name", "p": ${JSON.stringify(table[myID][1])}}`);
             let ids = new Array<string>;
             for (let id in table) {
                 ids.push(id);
             }
-            conn.send(`{"type": "connections", "payload": ${JSON.stringify(ids)}}`);
-        }, 500);
+            conn.send(`{"t": "conns", "p": ${JSON.stringify(ids)}}`);
+            if (count > 9) {
+                clearInterval(int); 
+            }
+            count += 1;
+        }, 200);
 }
 export function connect(peerID: string) {
     table[peerID] = [undefined, undefined];
@@ -175,4 +188,3 @@ export function disconnect() {
     createPlayers();
     drawBoardTable();
 }
-

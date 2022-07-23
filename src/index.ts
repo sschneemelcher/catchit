@@ -1,4 +1,5 @@
-import {connect, disconnect, broadcastMove, getReady, me, drawBoardTable, checkBoardTable} from './peer';
+import {connect, disconnect, broadcastMove, getReady, me,
+    stepSize, drawBoardTable, checkBoardTable} from './peer';
 import './style.css';
 
 function clickConnect() {
@@ -17,7 +18,6 @@ const canvas: HTMLCanvasElement = <HTMLCanvasElement> document.getElementById('g
 export const ctx = canvas.getContext('2d');
 export let boardWidth = canvas.width;
 export let boardHeight = canvas.height;
-export let stepSize = 5;
 
 console.log(boardWidth);
 
@@ -49,7 +49,6 @@ export function createColor() {
         color += c.toString(16);
         budget -= c;
     }
-    console.log(color);
     return color;
 }
 
@@ -62,38 +61,56 @@ document.getElementById('readyBtn').addEventListener('click', getReady);
 
 
 function makeMove(x: number, y: number) {
-    if (me.x + x >= 0 && me.x + x < boardWidth) {
+    if (me.x + x >= -(stepSize / 2) && me.x + x < (boardWidth + stepSize / 2)) {
         me.x += x;
+        me.x = Math.max(0, Math.min(me.x, boardWidth - stepSize));
     }
-    if (me.y + y >= 0 && me.y + y < boardHeight) {
+    if (me.y + y >= -(stepSize / 2) && me.y + y < (boardHeight + stepSize / 2)) {
         me.y += y;
+        me.y = Math.max(0, Math.min(me.y, boardHeight - stepSize));
     }
     broadcastMove();
 }
 
+let speed = 1;
+let keyList = new Set<string>;
+function keyUP(e:KeyboardEvent) {
+    keyList.delete(e.key);
+}
+
 function logkey(e: KeyboardEvent) {
-    switch (e.key) {
-        case 'w':
-        case 'ArrowUp':
-            makeMove(0, -stepSize);
-            break;
-        case 'a':
-        case 'ArrowLeft':
-            makeMove(-stepSize, 0);
-            break;
-        case 's':
-        case 'ArrowDown':
-            makeMove(0, stepSize);
-            break;
-        case 'd':
-        case 'ArrowRight':
-            makeMove(stepSize, 0);
-            break;
-        default:
-            break;
-    }
+    keyList.add(e.key);
+}
+
+export function move() {
+    keyList.forEach(key => {
+        switch (key) {
+            case 'w':
+            case 'ArrowUp':
+                makeMove(0, -(stepSize / 2) * speed);
+                break;
+            case 'a':
+            case 'ArrowLeft':
+                makeMove(-(stepSize / 2) * speed, 0);
+                break;
+            case 's':
+            case 'ArrowDown':
+                makeMove(0, (stepSize / 2) * speed);
+                break;
+            case 'd':
+            case 'ArrowRight':
+                makeMove((stepSize / 2) * speed, 0);
+                break;
+            case 'e':
+                speed = (speed % 2) + 1;
+            default:
+                break;
+        }
+    });
     checkBoardTable();
     drawBoardTable();
 }
 
-document.addEventListener('keydown', logkey);
+
+document.addEventListener('keypress', logkey);
+document.addEventListener('keyup', keyUP);
