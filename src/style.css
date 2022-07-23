@@ -1,5 +1,7 @@
 body {
     background: #000000;
+    overflow-x: hidden;
+    overflow-y: hidden;
 }
 
 #gameDiv {
