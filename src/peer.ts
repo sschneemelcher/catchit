@@ -6,23 +6,31 @@ import {checkBoard, checkReady} from './game';
 const canvas: HTMLCanvasElement = <HTMLCanvasElement> document.getElementById('game');
 let peer = new Peer();
 
-type Table = {
+export type Table = {
     [id: string]: [conn: DataConnection, player: Player],
 }
 
 let table: Table = {};
+let players: Array<Player> = [];
 
-//let conns = new Array<DataConnection>;
+function createPlayers() {
+    players = [];
+    for (let id in table) {
+        if (table[id] != undefined) {
+            players.push(table[id][1]);
+        }
+    }
+}
 
 type message = {
     type: string;
     payload: unknown;
 }
 
-export function sendCatch(player: Player) {
+export function sendCatch(catchID: string) {
     for (let id in table) {
         if (id != myID) {
-            table[id][0].send(`{"type": "gotcha", "payload": ${JSON.stringify(player)}}`);
+            table[id][0].send(`{"type": "gotcha", "payload": "${catchID}"}`);
         }
     }
 }
@@ -30,7 +38,7 @@ export function sendCatch(player: Player) {
 export function broadcastMove() {
     for (let id in table) {
         if (id != myID) {
-            table[id][0].send(`{"type": "position", "payload": ${JSON.stringify(table[myID][1])}}`);
+            table[id][0].send(`{"type": "position", "payload": ${JSON.stringify([table[myID][1].x, table[myID][1].y])}}`);
         }
     }
     drawBoardTable();
@@ -40,18 +48,14 @@ export function getReady() {
     table[myID][1].ready = rand(200) + 1;
     for (let id in table) {
         if (id != myID) {
-            table[id][0].send(`{"type": "ready", "payload": ${JSON.stringify(table[myID][1])}}`);
+            table[id][0].send(`{"type": "ready", "payload": ${table[myID][1].ready}}`);
         }
     }
+    checkReady(players);
     drawBoardTable();
 }
 
 export function drawBoardTable() {
-    let players: Array<Player> = [];
-    for (let id in table) {
-        players.push(table[id][1]);
-    }
-    checkReady(players);
     drawBoard(players);
 }
 
@@ -60,7 +64,7 @@ export function checkBoardTable() {
     for (let id in table) {
         players.push(table[id][1]);
     }
-    checkBoard(players);
+    checkBoard(table);
 }
 
 let boardWidth = canvas.width;
@@ -77,12 +81,13 @@ export let me = ({name: localStorage['username'], x: myX, y: myY, color: createC
 
 console.log(me);
 
-let myID = '';
+export let myID = '';
 peer.on('open', function(id) {
 	console.log('My peer ID is: ' + id);
     myID = id;
     table[myID] = [undefined, undefined];
     table[myID][1] = me;
+    createPlayers();
     drawBoardTable();
     document.getElementById('peerID').innerText += ' ' + id;
     peer.on('connection', function(conn) {
@@ -94,23 +99,23 @@ peer.on('open', function(id) {
 
 
 function handleMessage(peerID:string, msg_str: string) {
-    console.log(msg_str);
     let msg: message = JSON.parse(msg_str);
     switch (msg.type) {
         case 'name':
             let newPlayer: Player = msg.payload as Player;
             table[peerID][1] = newPlayer;
+            createPlayers();
             break;
         case 'position':
+            let arr = msg.payload as Array<number>;
+            table[peerID][1].x = arr[0];
+            table[peerID][1].y = arr[1];
+            createPlayers();
+            break;
         case 'ready':
-            let updatedPlayer: Player = msg.payload as Player;
-            for (let id in table) {
-                if (id != myID) {
-                    if (table[id][1].name == updatedPlayer.name) {
-                        table[id][1] = updatedPlayer;
-                    }
-                }
-            }
+            table[peerID][1].ready = msg.payload as number;
+            createPlayers();
+            checkReady(players);
             break;
         case 'connections':
             let otherConns: Array<string> = msg.payload as Array<string>;
@@ -120,16 +125,9 @@ function handleMessage(peerID:string, msg_str: string) {
             });
             break;
         case 'gotcha':
-            let caughtPlayer: Player = msg.payload as Player;
-            for (let id in table) {
-                if (id != myID) {
-                    if (table[id][1].name == caughtPlayer.name) {
-                        table[id][1].catcher = true;
-                    } else {
-                        table[id][1].catcher = false;
-                    }
-                }
-            }
+            table[peerID][1].catcher = false;
+            table[msg.payload as string][1].catcher = true;
+            createPlayers();
         default:
             console.log('unknown message type');
             break;
@@ -142,6 +140,11 @@ function handleMessage(peerID:string, msg_str: string) {
 function setupConnection(conn: DataConnection) {
         conn.on('data', function(data: string){
             handleMessage(conn.peer, data);
+        });
+        conn.on('close', function() {
+            delete table[conn.peer];
+            createPlayers();
+            drawBoardTable();
         });
         setTimeout(function() {
             conn.send(`{"type": "name", "payload": ${JSON.stringify(table[myID][1])}}`);
@@ -160,5 +163,16 @@ export function connect(peerID: string) {
             setupConnection(table[peerID][0]);
         });
     }
+}
+
+export function disconnect() {
+    for (let id in table) {
+        if (id != myID) {
+            table[id][0].close();
+            delete table[id];
+        }
+    }
+    createPlayers();
+    drawBoardTable();
 }
 

@@ -1,5 +1,4 @@
-import * as _ from 'lodash';
-import {connect, broadcastMove, getReady, me, drawBoardTable, checkBoardTable} from './peer';
+import {connect, disconnect, broadcastMove, getReady, me, drawBoardTable, checkBoardTable} from './peer';
 import './style.css';
 
 function clickConnect() {
@@ -12,6 +11,7 @@ function clickConnect() {
 }
 
 document.getElementById('connectBtn').addEventListener('click', clickConnect);
+document.getElementById('disconnectBtn').addEventListener('click', disconnect);
 
 const canvas: HTMLCanvasElement = <HTMLCanvasElement> document.getElementById('game');
 export const ctx = canvas.getContext('2d');

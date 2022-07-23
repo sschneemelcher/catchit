@@ -1,5 +1,5 @@
 import {Player} from './index';
-import {sendCatch} from './peer';
+import {sendCatch, Table, myID} from './peer';
 
 
 let checkedX = -1;
@@ -18,17 +18,19 @@ function hashcode(str: string) {
 }
 
 
-export function checkBoard(players: Array<Player>) {
-    let me = players[0];
+export function checkBoard(table: Table) {
+    let me = table[myID][1];
     if (me.x != checkedX || me.y != checkedY) {
         checkedX = me.x;
         checkedY = me.y;
         if (me.catcher) {
-            for (let i = 1; i < players.length; i++) {
-                if (players[i].x == me.x && players[i].y == me.y) {
-                    me.catcher = false;
-                    players[i].catcher = true;
-                    sendCatch(players[i]);
+            for (let id in table) {
+                if (id != myID) {
+                    if (table[id][1].x == me.x && table[id][1].y == me.y) {
+                        table[myID][1].catcher = false;
+                        table[id][1].catcher = true;
+                        sendCatch(id);
+                    }
                 }
             }
         }
